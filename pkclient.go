@@ -36,7 +36,7 @@ type PKClient struct {
 // The private and match public key must also be found during setup
 // The private key must be the Curve25519 Algorithm, OID 1.3.101.110
 //
-func New(hsmPath string, slot uint, pin string) (*PKClient, error) {
+func New(hsmPath string, slotid uint, pin string) (*PKClient, error) {
 	client := new(PKClient)
 	module, err := p11.OpenModule(hsmPath)
 	if err != nil {
@@ -49,13 +49,21 @@ func New(hsmPath string, slot uint, pin string) (*PKClient, error) {
 	if err != nil {
 		return nil, err
 	}
+	var slot p11.Slot
+	for _, element := range slots {
+		if element.ID() == slotid {
+			slot = element
+			fmt.Fprintln(os.Stderr, "Found a slot")
+			break;
+		}
+	}
 	// try to open a session on the slot
-	client.HSM_Session.session, err = slots[slot].OpenWriteSession()
+	client.HSM_Session.session, err = slot.OpenWriteSession()
 	if err != nil {
 		err := fmt.Errorf("failed to open session on slot %d", slot)
 		return nil, err
 	}
-	client.HSM_Session.slot = slot
+	client.HSM_Session.slot = slotid
 
 	// try to login to the slot
 
